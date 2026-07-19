@@ -8,25 +8,44 @@ A high-performance, production-grade **Low-Level Design (LLD)** implementation b
 
 The application strictly follows the **Repository & Service Pattern** decoupling paradigm to isolate infrastructure layers from administrative core calculation components.
 
+## 🏗️ Project Architecture
+
+```text
 ┌────────────────────────────────────────────────────────┐
-│                   Express Router                       │
+│                     Express Router                     │
+│          Receives HTTP Requests & Routes APIs          │
 └───────────────────────────┬────────────────────────────┘
+                            │
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│                 Controller Framework                   │
+│                  Controller Layer                      │
+│     Handles Request, Response & Error Management       │
 └───────────────────────────┬────────────────────────────┘
+                            │
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│             Service Layer (Business Logic)             │
+│                   Service Layer                        │
+│      Contains Business Logic & Core Workflow           │
 └───────────────────────────┬────────────────────────────┘
+                            │
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│             Repository Data Access Layer               │
+│                 Repository Layer                       │
+│          Performs Database Operations Only             │
 └───────────────────────────┬────────────────────────────┘
+                            │
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│                   Prisma Engine ORM                    │
+│                    Prisma ORM                          │
+│        Converts JS Queries into SQL Statements         │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                  PostgreSQL (Neon)                     │
+│               Persistent Database Storage              │
 └────────────────────────────────────────────────────────┘
+```
 
 
 ### 🧠 Core Class/Module Architecture (Equivalent System Interfaces)
