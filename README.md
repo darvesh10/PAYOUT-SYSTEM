@@ -1,9 +1,12 @@
-# Affiliate Payout & Wallet Management System
+# 💰 Automated Affiliate Payout & Wallet Management System
 
-A comprehensive, production-grade Low-Level Design (LLD) implementation for tracking user affiliate sales, automated fractional advance payouts, dynamic reconciliation engines, and explicit transaction failure recovery loops.
+A high-performance, production-grade **Low-Level Design (LLD)** implementation built using **Node.js, Express, and Prisma ORM with PostgreSQL**. This system handles real-time affiliate sale tracking, automated fraction advance payouts, dynamic administrative reconciliation, and automated transaction failure recovery loops.
 
-## 🏗️ System Architecture & LLD Decisions
-The application strictly follows the **Repository & Service Pattern** decoupled layer paradigm to separate raw database abstractions from administrative domain calculations.
+---
+
+## 🏗️ 1. Low-Level Design (LLD) & Architecture
+
+The application strictly follows the **Repository & Service Pattern** decoupling paradigm to isolate infrastructure layers from administrative core calculation components.
 
 ┌────────────────────────────────────────────────────────┐
 │                   Express Router                       │
@@ -14,59 +17,93 @@ The application strictly follows the **Repository & Service Pattern** decoupled 
 └───────────────────────────┬────────────────────────────┘
 ▼
 ┌────────────────────────────────────────────────────────┐
-│                 Service Layer (Business Logic)         │
+│             Service Layer (Business Logic)             │
 └───────────────────────────┬────────────────────────────┘
 ▼
 ┌────────────────────────────────────────────────────────┐
-│                 Repository Data Layer                  │
+│             Repository Data Access Layer               │
 └───────────────────────────┬────────────────────────────┘
 ▼
 ┌────────────────────────────────────────────────────────┐
 │                   Prisma Engine ORM                    │
 └────────────────────────────────────────────────────────┘
-### Key Design Trade-offs
-*   **Database Engine Precision:** Opted for PostgreSQL Explicit `Decimal(12, 2)` format over native Javascript Floating points primitives to securely neutralize rounding limits inside banking updates.
-*   **Concurrency & ACID Strategy:** Encapsulated critical state switches inside localized database transactional boundaries (`prisma.$transaction`) ensuring multi-operation state transitions rollback cleanly on mid-flight connectivity failure events.
+
+
+### 🧠 Core Class/Module Architecture (Equivalent System Interfaces)
+*   **`saleService` / `saleRepository`**: Handles onboarding new revenue rows and locks transaction logs during admin verification cycles.
+*   **`payoutService`**: The automated calculation engine managing fractional cash flows and ensuring batch idempotency.
+*   **`withdrawalService`**: Manages user ledgers, enforces rate-limiting constraints, and triggers immediate asset restorations on outer network failure frames.
 
 ---
 
-## 💾 Database Schema Structural Mappings
+## 🗂️ 2. Database Schema & Relationships
 
-### 1. User Model
-*   `id`: String (CUID Primitive) - Primary Key
-*   `name`: String
-*   `email`: String (Unique Index constraints)
-*   `withdrawableBalance`: Decimal (Precision safety)
-*   `lastWithdrawalAt`: DateTime (Nullable timestamp)
+To neutralize rounding limits and ensure zero data loss during fractional currency evaluations, all ledger components are backed by the **PostgreSQL `Decimal(12, 2)` type** instead of native JavaScript floating-point representations.
 
-### 2. Sale Model
-*   `id`: String (CUID Primary Key)
-*   `userId`: String (Foreign Key relation boundary)
-*   `brandId`: String (Foreign Key tracking entity)
-*   `earning`: Decimal
-*   `status`: Enum (PENDING, APPROVED, REJECTED)
-*   `advancePaid`: Boolean Flag (Guarantees execution Idempotency)
-*   `advanceAmount`: Decimal 
+### ER Diagram Entity Models
+
+#### 👤 User Model
+*   `id` (`String`, CUID, Primary Key)
+*   `name` (`String`)
+*   `email` (`String`, Unique Index Constraint)
+*   `withdrawableBalance` (`Decimal(12, 2)`, Liquidity Storage)
+*   `lastWithdrawalAt` (`DateTime`, Nullable Velocity Indexer)
+
+#### 🏷️ Brand Model
+*   `id` (`String`, CUID, Primary Key)
+*   `name` (`String`, Unique Index Constraint)
+
+#### 🛒 Sale Model (`User 1 ── 🔗 ── ⚬ N Sales`)
+*   `id` (`String`, CUID, Primary Key)
+*   `userId` (`String`, Foreign Key ── `User.id`)
+*   `brandId` (`String`, Foreign Key ── `Brand.id`)
+*   `earning` (`Decimal(12, 2)`)
+*   `status` (`Enum: PENDING, APPROVED, REJECTED`)
+*   `advancePaid` (`Boolean`, Idempotency Flag)
+*   `advanceAmount` (`Decimal(12, 2)`)
+
+#### 💳 Payout Model (`Sale 1 ── 🔗 ── ⚬ N Payouts`)
+*   `id` (`String`, CUID, Primary Key)
+*   `saleId` (`String`, Foreign Key ── `Sale.id`)
+*   `userId` (`String`, Foreign Key ── `User.id`)
+*   `type` (`Enum: ADVANCE, FINAL, ADJUSTMENT`)
+*   `amount` (`Decimal(12, 2)`)
+*   `status` (`Enum: PENDING, SUCCESS, FAILED`)
+
+#### 📥 Withdrawal Model (`User 1 ── 🔗 ── ⚬ N Withdrawals`)
+*   `id` (`String`, CUID, Primary Key)
+*   `userId` (`String`, Foreign Key ── `User.id`)
+*   `amount` (`Decimal(12, 2)`)
+*   `status` (`Enum: PENDING, SUCCESS, FAILED, CANCELLED, REJECTED`)
 
 ---
 
-## 🔌 Core API Documentation Endpoints
+## 🔌 3. Core API Documentation Endpoints
 
-### 1. Affiliate Sales Node
-*   `POST /sales` - Registers an onboarding merchant pending sale entity.
-*   `PATCH /sales/reconcile/:id` - Triggers admin verification pipeline execution logic.
+### 📌 Affiliate Sales Node
+*   `POST /sales` — Registers a new raw merchant pending sale object.
+*   `PATCH /sales/reconcile/:id` — Administrative pipeline calculation entry. Passes `{"status": "APPROVED" | "REJECTED"}`.
 
-### 2. Payout Management
-*   `POST /payouts/advance` - Automated micro-batch utility calculating fraction advances.
+### 📌 Automated Payout Engine
+*   `POST /payouts/advance` — Batched script calculation processing 10% cash advances to affiliates.
 
-### 3. Financial Withdrawal Hub
-*   `POST /withdrawals` - Performs secure user ledger balance disbursement calls.
-*   `PATCH /withdrawals/:id/status` - Recovery loop restoring balance metrics on pipeline blockages.
+### 📌 Liquidity Withdrawal Node
+*   `POST /withdrawals` — Validates ledger liquidity bounds and processes user disbursement requests.
+*   `PATCH /withdrawals/:id/status` — Network callback ingestion tool managing failure state recoveries.
 
 ---
 
-## 🛡️ Edge Cases & Exception Resiliency
+## 🛡️ 4. Edge Cases & Exception Resiliency Matrix
 
-1.  **Advance Payout Idempotency Loop:** Utilizes explicit state flags (`advancePaid`) to avoid duplicate payment extraction when scheduling workflows cycle multiple times over identically flagged objects[cite: 9].
-2.  **24-Hour Velocity Cap:** Evaluates historical timestamps dynamically to protect liquid pools against double-click drain attacks[cite: 9].
-3.  **Terminal Failure Rollback Workflow:** Listens for external payment cancellations, triggering reversal transactions that restore assets to liquid accounts immediately[cite: 9].
+| Scenario Target | Engineering Mitigation Implementation |
+| :--- | :--- |
+| **Batch Job Redundancy** | Employs explicit state tracking flags (`advancePaid`) ensuring zero duplication windows on cron cycles. |
+| **Race Condition Clicks** | Leverages atomic transactional boundaries (`prisma.$transaction`) enforcing state consistency across distributed calls. |
+| **24-Hour Velocity Drainage** | Dynamically verifies temporal historical timestamps (`lastWithdrawalAt`) preventing continuous rapid balance liquidation[cite: 9]. |
+| **External Channel Failures** | Implements automated recovery callbacks restoring original cash metrics back into live balance states instantly[cite: 9]. |
+
+---
+
+## ⚡ 5. Design Decisions & Engineering Trade-offs
+*   **Atomic Transactions over Code Loops:** All operational processes are unified inside single transactional isolation boundaries. If an intermediate database step fails mid-flight, the system rolls back all updates to eliminate data corruption.
+*   **CUID Identifiers:** CUID tokens were chosen over sequential numeric autoincrements to mask database analytics from outer inspection and prevent sequence guessing exploits.
